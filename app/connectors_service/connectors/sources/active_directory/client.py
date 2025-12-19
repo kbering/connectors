@@ -5,10 +5,11 @@
 #
 
 import asyncio
+import ssl
 from functools import partial
 
 import ldap3
-from ldap3 import ALL, NTLM, Connection, Server
+from ldap3 import ALL, NTLM, Connection, Server, Tls
 from ldap3.core.exceptions import LDAPException
 
 from connectors.sources.active_directory.constants import (
@@ -48,10 +49,16 @@ class ActiveDirectoryClient:
 
     def _connect(self):
         """Establish connection to AD"""
+        # For testing with self-signed certs, disable SSL verification
+        tls_config = None
+        if self.use_ssl:
+            tls_config = Tls(validate=ssl.CERT_NONE)
+
         server = Server(
             self.host,
             port=self.port,
             use_ssl=self.use_ssl,
+            tls=tls_config,
             get_info=ALL,
         )
 
