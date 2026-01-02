@@ -1,18 +1,26 @@
-FROM cgr.dev/chainguard/wolfi-base:latest
-ARG python_version=3.11
+FROM python:3.11-slim
 
-USER root
-RUN apk add --no-cache python3=~${python_version} make git
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    make \
+    git \
+    && rm -rf /var/lib/apt/lists/*
 
-COPY --chown=nonroot:nonroot . /app
-
-USER nonroot
+# Set working directory
 WORKDIR /app
-RUN make clean install-package
-RUN ln -s app/connectors_service/.venv/bin /app/bin
 
-USER root
-RUN apk del make git
+# Copy the entire project
+COPY . .
 
-USER nonroot
-ENTRYPOINT []
+# Install Python dependencies
+RUN make install
+
+# Create config directory
+RUN mkdir -p /app/config
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+
+# Run the connector
+CMD ["./app/connectors_service/.venv/bin/elastic-ingest", "--config-file", "/app/config/config.yml", "--log-level", "INFO"]

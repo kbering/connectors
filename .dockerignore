@@ -1,0 +1,8 @@
+.git
+.venv
+*.pyc
+__pycache__
+*.log
+.DS_Store
+config.yml
+elasticsearch-ca.crt

@@ -39,6 +39,7 @@ class ActiveDirectoryDataSource(BaseDataSource):
             page_size=self.configuration["page_size"],
             logger=self._logger,
         )
+        self._sync_cursor = None
 
     def _set_internal_logger(self):
         """Set logger for internal components"""
@@ -324,7 +325,7 @@ class ActiveDirectoryDataSource(BaseDataSource):
                 if usn > highest_usn:
                     highest_usn = usn
 
-                yield self._ad_object_to_doc(user, "user"), None
+                yield self._ad_object_to_doc(user, "user"), None, "index"
 
         # Sync changed groups
         if self.configuration["sync_groups"]:
@@ -334,7 +335,7 @@ class ActiveDirectoryDataSource(BaseDataSource):
                 if usn > highest_usn:
                     highest_usn = usn
 
-                yield self._ad_object_to_doc(group, "group"), None
+                yield self._ad_object_to_doc(group, "group"), None, "index"
 
         # Sync changed computers
         if self.configuration["sync_computers"]:
@@ -344,7 +345,7 @@ class ActiveDirectoryDataSource(BaseDataSource):
                 if usn > highest_usn:
                     highest_usn = usn
 
-                yield self._ad_object_to_doc(computer, "computer"), None
+                yield self._ad_object_to_doc(computer, "computer"), None, "index"
 
         # Sync changed OUs
         if self.configuration["sync_ous"]:
@@ -354,11 +355,16 @@ class ActiveDirectoryDataSource(BaseDataSource):
                 if usn > highest_usn:
                     highest_usn = usn
 
-                yield self._ad_object_to_doc(ou, "ou"), None
+                yield self._ad_object_to_doc(ou, "ou"), None, "index"
 
         # Update sync cursor with new highest USN
-        new_cursor = {"last_usn": highest_usn}
+        self._sync_cursor = {"last_usn": highest_usn}
         self._logger.info(f"Incremental sync complete. New highest USN: {highest_usn}")
 
-        # Return final cursor
-        yield None, None, new_cursor
+    def get_sync_cursor(self):
+        """Get the current sync cursor for incremental sync"""
+        return self._sync_cursor
+
+    def set_sync_cursor(self, cursor):
+        """Set the sync cursor for incremental sync"""
+        self._sync_cursor = cursor
